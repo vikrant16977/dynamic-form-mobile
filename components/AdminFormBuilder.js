@@ -160,12 +160,14 @@ const AdminFormBuilder = ({
               clicking on "Add Section" button to start creating your form.
             </Text>
           )}
-          <FormPreview
-            form={selectedForm}
-            setActiveSectionId={setActiveSectionId}
-            activeSectionId={activeSectionId}
-            onQuestionClick={handleQuestionClick}
-          />
+          <ScrollView horizontal={true} style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+            <FormPreview
+              form={selectedForm}
+              setActiveSectionId={setActiveSectionId}
+              activeSectionId={activeSectionId}
+              onQuestionClick={handleQuestionClick}
+            />
+          </ScrollView>
         </View>
       </View>
       <FieldPropertyModal

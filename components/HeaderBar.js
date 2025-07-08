@@ -1,24 +1,18 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
-
+import { useNavigation } from "@react-navigation/native";
 // Replace this with the actual require or import for your logo asset in React Native
 const logo = require("./images/socal-gas.png");
 
-const HeaderBar = ({ navigation, routeName }) => {
+const HeaderBar = ({ routeName }) => {
   // routeName should be current screen route to highlight selected nav
   // navigation should be from React Navigation
-
+  const navigation = useNavigation();
   return (
     <>
       {/* Logo Row */}
       <View style={styles.logoRow}>
         <TouchableOpacity onPress={() => navigation?.navigate("Home")}>
-          <Image
-            source={logo}
-            style={styles.logo}
-            resizeMode="contain"
-            accessibilityLabel="SoCalGas Logo"
-          />
         </TouchableOpacity>
       </View>
       {/* Navigation Bar */}
@@ -60,9 +54,6 @@ const HeaderBar = ({ navigation, routeName }) => {
           <View style={styles.iconNav}>
             <Text style={styles.icon}>❓</Text>
             <Text style={styles.iconLabel}>Help</Text>
-          </View>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>OG</Text>
           </View>
         </View>
       </View>
