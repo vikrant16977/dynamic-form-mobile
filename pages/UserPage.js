@@ -11,10 +11,11 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { FormContext } from "../context/FormContext";
+import { ActivityIndicator } from "react-native";
 import HeaderBar from "../components/HeaderBar";
 
 const UserPage = () => {
-  const { forms, selectedFormId, updateSelectedFormId, getSelectedForm } =
+  const { forms, selectedFormId, updateSelectedFormId, getSelectedForm ,loading} =
     useContext(FormContext);
 
   const [responses, setResponses] = useState({});
@@ -39,6 +40,15 @@ const UserPage = () => {
     setResponses({});
   };
 
+   if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <HeaderBar />
+        <ActivityIndicator size="large" color="#11329E" />
+        <Text>Loading forms...</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
       <HeaderBar />
