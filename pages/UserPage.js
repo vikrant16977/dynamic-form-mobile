@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,39 +8,97 @@ import {
   ScrollView,
   Alert,
   Switch,
+  ActivityIndicator,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { FormContext } from "../context/FormContext";
-import { ActivityIndicator } from "react-native";
 import HeaderBar from "../components/HeaderBar";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import NetInfo from "@react-native-community/netinfo";
+
+const FORM_RESPONSES_CACHE_KEY = "cached_form_responses";
+const FORM_SELECTION_CACHE_KEY = "cached_form_selection";
 
 const UserPage = () => {
-  const { forms, selectedFormId, updateSelectedFormId, getSelectedForm ,loading} =
-    useContext(FormContext);
+  const {
+    forms,
+    selectedFormId,
+    updateSelectedFormId,
+    getSelectedForm,
+    loading,
+  } = useContext(FormContext);
 
   const [responses, setResponses] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   const selectedForm = getSelectedForm();
 
+  // Network status listener
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOffline(!state.isConnected);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Load cached responses if offline
+  useEffect(() => {
+    const loadCached = async () => {
+      if (isOffline) {
+        try {
+          const cached = await AsyncStorage.getItem(FORM_RESPONSES_CACHE_KEY);
+          if (cached) setResponses(JSON.parse(cached));
+          const cachedSel = await AsyncStorage.getItem(FORM_SELECTION_CACHE_KEY);
+          if (cachedSel) updateSelectedFormId(JSON.parse(cachedSel));
+        } catch {}
+      }
+    };
+    loadCached();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOffline]);
+
   const handleChange = (sectionId, questionId, value) => {
-    setResponses((prev) => ({
-      ...prev,
-      [sectionId]: { ...prev[sectionId], [questionId]: value },
-    }));
+    setResponses((prev) => {
+      const updated = {
+        ...prev,
+        [sectionId]: { ...prev[sectionId], [questionId]: value },
+      };
+      AsyncStorage.setItem(FORM_RESPONSES_CACHE_KEY, JSON.stringify(updated));
+      return updated;
+    });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Submit logic here
-    console.log("Form submitted:", responses);
-    setSubmitted(true);
+    if (isOffline) {
+      Alert.alert(
+        "Offline",
+        "You're offline. Your responses are saved locally and will need to be submitted when online."
+      );
+      setSubmitted(true);
+    } else {
+      // Replace with actual API submit logic if needed
+      console.log("Form submitted:", responses);
+      setSubmitted(true);
+      await AsyncStorage.removeItem(FORM_RESPONSES_CACHE_KEY);
+    }
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     setResponses({});
+    await AsyncStorage.removeItem(FORM_RESPONSES_CACHE_KEY);
   };
 
-   if (loading) {
+  const handleFormChange = (value) => {
+    updateSelectedFormId(value);
+    setResponses({});
+    setSubmitted(false);
+    AsyncStorage.setItem(FORM_SELECTION_CACHE_KEY, JSON.stringify(value));
+    AsyncStorage.removeItem(FORM_RESPONSES_CACHE_KEY);
+  };
+
+  if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <HeaderBar />
@@ -55,15 +113,20 @@ const UserPage = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.header}>Select the Form to Submit</Text>
 
+        {/* Offline Banner */}
+        {isOffline && (
+          <View style={styles.offlineBox}>
+            <Text style={styles.offlineText}>
+              You are offline. Filling forms will be saved locally and must be submitted later.
+            </Text>
+          </View>
+        )}
+
         {/* Form Selection */}
         {forms.length > 0 ? (
           <Picker
             selectedValue={selectedFormId}
-            onValueChange={(value) => {
-              updateSelectedFormId(value);
-              setResponses({});
-              setSubmitted(false);
-            }}
+            onValueChange={handleFormChange}
             style={styles.picker}
           >
             <Picker.Item label="Select a form" value={null} />
@@ -240,7 +303,7 @@ const UserPage = () => {
         {submitted && (
           <View style={styles.successBox}>
             <Text style={styles.successText}>
-              Form submitted! Your responses have been recorded.
+              Form submitted! Your responses have been {isOffline ? "saved locally." : "recorded."}
             </Text>
           </View>
         )}
@@ -266,6 +329,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   warningText: { color: "#856404" },
+  offlineBox: {
+    backgroundColor: "#f8d7da",
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 16,
+  },
+  offlineText: { color: "#842029" },
   section: {
     marginBottom: 24,
     padding: 16,
