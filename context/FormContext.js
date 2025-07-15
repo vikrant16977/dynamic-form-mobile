@@ -12,7 +12,12 @@ export const FormProvider = ({ children }) => {
   // Function to fetch forms from backend
   const fetchForms = async () => {
     try {
-      const response = await axios.get("https://dynamicformbackend.onrender.com/odata/v4/catalog/Forms");
+      const response = await axios.get('https://dynamic-form-mobile-noktwd7ra-vikrant-ahers-projects.vercel.app/api/forms', {
+  headers: {
+    'User-Agent': 'Mozilla/5.0',
+    // Add any other headers if needed
+  }
+});
       const data = response.data;
       console.log("Fetched data:", data);
 
