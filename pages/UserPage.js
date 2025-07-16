@@ -11,12 +11,14 @@ import {
   ActivityIndicator,
   Modal,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { FormContext } from "../context/FormContext";
 import HeaderBar from "../components/HeaderBar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 // Optional: NetInfo configuration for corporate networks
 NetInfo.configure({
@@ -37,7 +39,7 @@ const UserPage = () => {
   } = useContext(FormContext);
 
   const [responses, setResponses] = useState({});
-  const [comments, setComments] = useState({}); // { [sectionId]: { [questionId]: { [option]: comment } } }
+  const [comments, setComments] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
   const [modalField, setModalField] = useState({
     sectionId: null,
@@ -47,6 +49,8 @@ const UserPage = () => {
   });
   const [submitted, setSubmitted] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState({}); // key: sectionId-questionId, value: boolean
+  const [showTimePicker, setShowTimePicker] = useState({}); // key: sectionId-questionId, value: boolean
 
   const selectedForm = getSelectedForm();
 
@@ -100,7 +104,6 @@ const UserPage = () => {
   };
 
   const handleOptionPress = (sectionId, questionId, option, currentValue, type) => {
-    // currentValue: For radio, this is the selected value; for checkbox, it's an array
     setModalField({
       sectionId,
       questionId,
@@ -116,8 +119,6 @@ const UserPage = () => {
 
   const handleModalSave = () => {
     const { sectionId, questionId, option, value, type, currentValue } = modalField;
-
-    // Update comments state
     setComments((prev) => ({
       ...prev,
       [sectionId]: {
@@ -128,12 +129,9 @@ const UserPage = () => {
         },
       },
     }));
-
-    // Update responses state
     if (type === "radio") {
       handleChange(sectionId, questionId, option);
     } else if (type === "checkbox") {
-      // Toggle the option as per original logic
       let arr = Array.isArray(currentValue) ? currentValue : [];
       let updatedArr;
       if (arr.includes(option)) {
@@ -143,13 +141,11 @@ const UserPage = () => {
       }
       handleChange(sectionId, questionId, updatedArr);
     }
-
     setModalVisible(false);
     setModalField({ sectionId: null, questionId: null, option: null, value: "" });
   };
 
   const handleSubmit = async () => {
-    // Submit logic here
     if (isOffline) {
       Alert.alert(
         "Offline",
@@ -157,7 +153,6 @@ const UserPage = () => {
       );
       setSubmitted(true);
     } else {
-      // Replace with actual API submit logic if needed
       console.log("Form submitted:", responses, comments);
       setSubmitted(true);
       await AsyncStorage.removeItem(FORM_RESPONSES_CACHE_KEY);
@@ -182,10 +177,34 @@ const UserPage = () => {
     AsyncStorage.removeItem("comments");
   };
 
+  // Date/Time Handlers
+  const handleDateChange = (event, selectedDate, sectionId, questionId) => {
+    setShowDatePicker((prev) => ({
+      ...prev,
+      [`${sectionId}-${questionId}`]: Platform.OS === "ios",
+    }));
+    if (selectedDate) {
+      const isoString = selectedDate.toISOString().slice(0, 10); // YYYY-MM-DD
+      handleChange(sectionId, questionId, isoString);
+    }
+  };
+
+  const handleTimeChange = (event, selectedTime, sectionId, questionId) => {
+    setShowTimePicker((prev) => ({
+      ...prev,
+      [`${sectionId}-${questionId}`]: Platform.OS === "ios",
+    }));
+    if (selectedTime) {
+      const hours = String(selectedTime.getHours()).padStart(2, "0");
+      const mins = String(selectedTime.getMinutes()).padStart(2, "0");
+      handleChange(sectionId, questionId, `${hours}:${mins}`);
+    }
+  };
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <HeaderBar />
+     
         <ActivityIndicator size="large" color="#11329E" />
         <Text>Loading forms...</Text>
       </View>
@@ -237,6 +256,7 @@ const UserPage = () => {
                     const sectionResp = responses[section.id] || {};
                     const val = sectionResp[q.id] ?? "";
                     const commentMap = comments?.[section.id]?.[q.id] || {};
+                    const pickerKey = `${section.id}-${q.id}`
 
                     return (
                       <View key={q.id} style={styles.questionContainer}>
@@ -261,6 +281,113 @@ const UserPage = () => {
                               handleChange(section.id, q.id, t)
                             }
                           />
+                        )}
+                        {/* Number Input */}
+                        {q.type === "number" && (
+                          <TextInput
+                            style={styles.input}
+                            keyboardType="numeric"
+                            value={val}
+                            onChangeText={(t) =>
+                              handleChange(section.id, q.id, t)
+                            }
+                          />
+                        )}
+                        {/* Email Input */}
+                        {q.type === "email" && (
+                          <TextInput
+                            style={styles.input}
+                            keyboardType="email-address"
+                            value={val}
+                            onChangeText={(t) =>
+                              handleChange(section.id, q.id, t)
+                            }
+                          />
+                        )}
+                        {/* Date Picker */}
+                        {q.type === "date" && (
+                          <View>
+                            <TouchableOpacity
+                              onPress={() =>
+                                setShowDatePicker((prev) => ({
+                                  ...prev,
+                                  [pickerKey]: true,
+                                }))
+                              }
+                              style={styles.input}
+                            >
+                              <Text>
+                                {val
+                                  ? val
+                                  : "Select date (YYYY-MM-DD)"}
+                              </Text>
+                            </TouchableOpacity>
+                            {showDatePicker[pickerKey] && (
+                              <DateTimePicker
+                                value={val ? new Date(val) : new Date()}
+                                mode="date"
+                                display="default"
+                                onChange={(event, selectedDate) =>
+                                  handleDateChange(
+                                    event,
+                                    selectedDate,
+                                    section.id,
+                                    q.id
+                                  )
+                                }
+                                minimumDate={new Date(1900, 0, 1)}
+                                maximumDate={new Date(2100, 11, 31)}
+                              />
+                            )}
+                          </View>
+                        )}
+                        {/* Time Picker */}
+                        {q.type === "time" && (
+                          <View>
+                            <TouchableOpacity
+                              onPress={() =>
+                                setShowTimePicker((prev) => ({
+                                  ...prev,
+                                  [pickerKey]: true,
+                                }))
+                              }
+                              style={styles.input}
+                            >
+                              <Text>
+                                {val
+                                  ? val
+                                  : "Select time (HH:MM)"}
+                              </Text>
+                            </TouchableOpacity>
+                            {showTimePicker[pickerKey] && (
+                              <DateTimePicker
+                                value={
+                                  val
+                                    ? (() => {
+                                        const [h, m] = val.split(":");
+                                        const d = new Date();
+                                        d.setHours(Number(h) || 0);
+                                        d.setMinutes(Number(m) || 0);
+                                        d.setSeconds(0);
+                                        d.setMilliseconds(0);
+                                        return d;
+                                      })()
+                                    : new Date()
+                                }
+                                mode="time"
+                                display="default"
+                                is24Hour={true}
+                                onChange={(event, selectedTime) =>
+                                  handleTimeChange(
+                                    event,
+                                    selectedTime,
+                                    section.id,
+                                    q.id
+                                  )
+                                }
+                              />
+                            )}
+                          </View>
                         )}
                         {/* Radio */}
                         {q.type === "radio" && (
@@ -287,7 +414,6 @@ const UserPage = () => {
                                     {val === opt ? "●" : "○"} {opt}
                                   </Text>
                                 </TouchableOpacity>
-                                {/* Show comment if exists for this radio option */}
                                 {commentMap[opt] ? (
                                   <Text style={styles.commentText}>
                                     Comment: {commentMap[opt]}
@@ -324,7 +450,6 @@ const UserPage = () => {
                                       {arr.includes(opt) ? "[x]" : "[ ]"} {opt}
                                     </Text>
                                   </TouchableOpacity>
-                                  {/* Show comment if exists for this checkbox option */}
                                   {commentMap[opt] ? (
                                     <Text style={styles.commentText}>
                                       Comment: {commentMap[opt]}
@@ -349,50 +474,6 @@ const UserPage = () => {
                               <Picker.Item key={idx} label={opt} value={opt} />
                             ))}
                           </Picker>
-                        )}
-                        {/* Number Input */}
-                        {q.type === "number" && (
-                          <TextInput
-                            style={styles.input}
-                            keyboardType="numeric"
-                            value={val}
-                            onChangeText={(t) =>
-                              handleChange(section.id, q.id, t)
-                            }
-                          />
-                        )}
-                        {/* Email Input */}
-                        {q.type === "email" && (
-                          <TextInput
-                            style={styles.input}
-                            keyboardType="email-address"
-                            value={val}
-                            onChangeText={(t) =>
-                              handleChange(section.id, q.id, t)
-                            }
-                          />
-                        )}
-                        {/* Date Input */}
-                        {q.type === "date" && (
-                          <TextInput
-                            style={styles.input}
-                            placeholder="YYYY-MM-DD"
-                            value={val}
-                            onChangeText={(t) =>
-                              handleChange(section.id, q.id, t)
-                            }
-                          />
-                        )}
-                        {/* Time Input */}
-                        {q.type === "time" && (
-                          <TextInput
-                            style={styles.input}
-                            placeholder="HH:MM"
-                            value={val}
-                            onChangeText={(t) =>
-                              handleChange(section.id, q.id, t)
-                            }
-                          />
                         )}
                       </View>
                     );
