@@ -63,7 +63,7 @@ export const FormProvider = ({ children }) => {
     // Set up interval to fetch every 15 seconds
     intervalRef.current = setInterval(() => {
       fetchForms();
-    }, 60000);
+    }, 15000);
 
     // Cleanup on unmount
     return () => {

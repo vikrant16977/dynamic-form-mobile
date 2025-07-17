@@ -1,48 +1,31 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-// Replace this with the actual require or import for your logo asset in React Native
 const logo = require("./images/socal-gas.png");
 
 const HeaderBar = ({ routeName }) => {
-  // routeName should be current screen route to highlight selected nav
-  // navigation should be from React Navigation
   const navigation = useNavigation();
   return (
     <>
       {/* Logo Row */}
-      <View style={styles.logoRow}>
-        <TouchableOpacity onPress={() => navigation?.navigate("Home")}>
-        </TouchableOpacity>
-      </View>
+      
       {/* Navigation Bar */}
       <View style={styles.navbar}>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation?.navigate("Home")}
-        >
-          <Text
-            style={[
-              styles.navText,
-              routeName === "Home" && styles.navTextActive,
-            ]}
+        <View style={styles.leftSection}>
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => navigation?.navigate("Home")}
           >
-            Home
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation?.navigate("Admin")}
-        >
-          <Text
-            style={[
-              styles.navText,
-              routeName === "Admin" && styles.navTextActive,
-            ]}
-          >
-            Form Creator
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.navText,
+                routeName === "Home" && styles.navTextActive,
+              ]}
+            >
+              Home
+            </Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.rightIcons}>
           <TouchableOpacity
             style={styles.iconNav}
@@ -51,10 +34,10 @@ const HeaderBar = ({ routeName }) => {
             <Text style={styles.icon}>👤</Text>
             <Text style={styles.iconLabel}>User</Text>
           </TouchableOpacity>
-          <View style={styles.iconNav}>
+          <TouchableOpacity style={styles.iconNav}>
             <Text style={styles.icon}>❓</Text>
             <Text style={styles.iconLabel}>Help</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
     </>
@@ -65,53 +48,81 @@ const styles = StyleSheet.create({
   logoRow: {
     backgroundColor: "#fff",
     paddingHorizontal: 24,
-    paddingVertical: 8,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    zIndex: 10,
   },
   logo: {
-    width: 90,
-    height: 36,
+    width: 110,
+    height: 38,
   },
   navbar: {
     backgroundColor: "#0C2D87",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 24,
-    paddingVertical: 4,
+    paddingVertical: 8,
     justifyContent: "space-between",
+    elevation: 2,
+    zIndex: 9,
+  },
+  leftSection: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   navItem: {
-    marginRight: 24,
+    marginRight: 28,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 5,
   },
   navText: {
     color: "#fff",
-    fontWeight: "normal",
-    fontSize: 16,
+    fontWeight: "500",
+    fontSize: 17,
+    opacity: 0.88,
+    letterSpacing: 0.5,
   },
   navTextActive: {
     fontWeight: "bold",
     textDecorationLine: "underline",
+    color: "#FFDC00",
+    opacity: 1,
+    letterSpacing: 0.6,
   },
   rightIcons: {
     flexDirection: "row",
     alignItems: "center",
-    marginLeft: "auto",
-    gap: 12,
+    gap: 18,
+    marginLeft: 12,
   },
   iconNav: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 2,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 5,
+    backgroundColor: "rgba(255,255,255,0.07)",
   },
   icon: {
     color: "#fff",
-    marginRight: 4,
-    fontSize: 18,
+    marginRight: 5,
+    fontSize: 21,
   },
   iconLabel: {
     color: "#fff",
     fontSize: 16,
+    fontWeight: "500",
+    opacity: 0.93,
   },
   avatarCircle: {
     width: 32,
